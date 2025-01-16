@@ -51,9 +51,8 @@ FROM
         ON ph.POLHDR_ID = p.POLHDR_ID
     LEFT OUTER JOIN ods.CLAIM c 
         ON c.POLICY_ID = p.POLICY_ID
-WHERE 
-    p.SRC_SYSTEM = 'DCP' 
-    AND p.SRC_POLICY_NUMBER in(" + policynumbers + ") GROUP BY p.SRC_POLICY_NUMBER,pd.BILL_REC_TYPE,pd.RATING_STATE,A.AGENCYNBR,c.SRC_CLAIM_NUMBER,A.AGENCYNAME,ph.PHID,p.BILLING_ACCOUNT_NUMBER";
+WHERE     p.SRC_SYSTEM = 'DCP' 
+    AND p.SRC_POLICY_NUMBER in(" + policynumbers + ") GROUP BY p.SRC_POLICY_NUMBER,c.SRC_CLAIM_NUMBER,ph.PHID,p.BILLING_ACCOUNT_NUMBER,pd.RATING_STATE,A.AGENCYNBR,A.AGENCYNAME";
                 using (OracleCommand cmd = new OracleCommand(query, conn))
                 using (OracleDataReader reader = cmd.ExecuteReader())
                 {

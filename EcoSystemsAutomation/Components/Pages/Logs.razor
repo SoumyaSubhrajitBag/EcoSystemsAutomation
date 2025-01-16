@@ -1,11 +1,13 @@
 ﻿@page "/logs"
+@using DocumentFormat.OpenXml.Office.CustomUI
+@using DocumentFormat.OpenXml.Office2010.CustomUI
 @using Radzen
+@using Radzen.Blazor
 @using EcoSystemsAutomation.XMLHelper
 @using System.Text.RegularExpressions
 @inject IXMLDeserializer XMLDeserializer
 @inject NotificationService NotificationService
 @rendermode InteractiveServer
-
 <div class="container">
     <nav class="navbar navbar-expand-lg navbar-dark bg-primary mb-4">
         <div class="container-fluid">
@@ -74,13 +76,13 @@
                 <RadzenDataGrid Data="@filteredReports" TItem="ReportItem" AllowFiltering="false" AllowSorting="true" AllowPaging="true" PageSize="10" RowRender="OnRowRender" Style="height: auto">
                     <Columns>
                         <RadzenDataGridColumn TItem="ReportItem" Property="StepNumber" Title="#" TextAlign="TextAlign.Center" Width="50px" />
+                         <RadzenDataGridColumn TItem="ReportItem" Property="Caption" Title="Test Object Caption" />
                         <RadzenDataGridColumn TItem="ReportItem" Property="Result" Title="Status" TextAlign="TextAlign.Center">
                             <Template Context="item">
                                 <RadzenBadge BadgeStyle="@(GetBadgeStyle(item.ConsoleOutput))"
-                                Text="@(ParseConsoleOutput(item.ConsoleOutput))" />
+                                             Text="@(ParseConsoleOutput(item.ConsoleOutput))" />
                             </Template>
                         </RadzenDataGridColumn>
-                        <RadzenDataGridColumn TItem="ReportItem" Property="Caption" Title="Test Object Caption" />
                         <RadzenDataGridColumn TItem="ReportItem" Property="ActualResult" Title="Actual Result" />
                         <RadzenDataGridColumn TItem="ReportItem" Property="ExpectedResult" Title="Expected Result" />
                         <RadzenDataGridColumn TItem="ReportItem" Property="ConsoleOutput" Title="Console Output" />
@@ -96,6 +98,7 @@
         }
     </div>
 </div>
+
 
 @code {
     private List<Report> _reports = new();
@@ -357,28 +360,28 @@
 
     // On refersh Data..
     private async Task RefreshData()
-{
-    try
     {
-        isLoading = true; // Start loading
-        filteredReports.Clear(); // Clear grid data
-        pieChartData.Clear(); // Clear pie chart data
-        await Task.Delay(3000); // Simulate loading
-        await LoadReportData();
+        try
+        {
+            isLoading = true; // Start loading
+            filteredReports.Clear(); // Clear grid data
+            pieChartData.Clear(); // Clear pie chart data
+            await Task.Delay(3000); // Simulate loading
+            await LoadReportData();
 
-        NotificationService.Notify(new NotificationMessage
+            NotificationService.Notify(new NotificationMessage
             {
                 Severity = NotificationSeverity.Success,
                 Summary = "Data Refreshed",
                 Detail = "Reports have been refreshed successfully",
                 Duration = 4000
             });
+        }
+        finally
+        {
+            isLoading = false; // Stop loading
+        }
     }
-    finally
-    {
-        isLoading = false; // Stop loading
-    }
-}
 
 
 
@@ -408,10 +411,11 @@
 
     private List<string> GetXmlPaths(DateTime? date)
     {
-        var formattedDate = date?.ToString("MM-dd-yyyy");
+        // var formattedDate = date?.ToString("MM-dd-yyyy");
+        var formattedDate = "01-15-2025";
         return new List<string>
         {
-            $"X:\\AutomationScript\\ALA-EX-CRT-AMS-BILL-CLM-PAM-NOC-EPM\\Results\\{formattedDate}\\ALA-EX-CRT-AMS-BILL-CLM-PAM-NOC-EPMResults.xml",
+            $"X:\\AutomationScript\\ALA-ES-CRT-AMS-BILL-CLM-PAM-NOC-EPM\\Results\\{formattedDate}\\ALA-ES-CRT-AMS-BILL-CLM-PAM-NOC-EPMResults.xml",
             $"X:\\AutomationScript\\LC360-UAT\\Results\\{formattedDate}\\LC360Result.xml"
         };
     }

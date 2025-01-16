@@ -1,5 +1,7 @@
 using System.Net.NetworkInformation;
 using EcoSystemsAutomation.Components;
+using EcoSystemsAutomation.Contracts.ServiceContracts;
+using EcoSystemsAutomation.Services;
 using EcoSystemsAutomation.XMLHelper;
 using Radzen;
 using Radzen.Blazor;
@@ -19,6 +21,8 @@ builder.Services.AddRadzenComponents();
 builder.Services.AddSingleton<Iods, ODS>();
 builder.Services.AddScoped<IXMLDeserializer, XMLDeserializer>();
 builder.Services.AddScoped<NotificationService>();
+builder.Services.AddScoped<IProcessInvokeService, ProcessInvokeService>();
+builder.Services.AddScoped<IPowerAutomateServices, PowerAutomateServices>();
 
 
 

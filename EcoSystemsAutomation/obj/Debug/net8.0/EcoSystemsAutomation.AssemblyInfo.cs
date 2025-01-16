@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("EcoSystemsAutomation")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+b7015aab3440bcc709d5c679a3060fe063b98ee1")]
 [assembly: System.Reflection.AssemblyProductAttribute("EcoSystemsAutomation")]
 [assembly: System.Reflection.AssemblyTitleAttribute("EcoSystemsAutomation")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

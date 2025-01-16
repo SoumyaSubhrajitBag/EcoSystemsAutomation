@@ -40,13 +40,13 @@
       <AssetFile>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..\staticwebassets\EcoSystemsAutomation.xh6o7tuxh0.bundle.scp.css'))</AssetFile>
       <Selectors><![CDATA[[]]]></Selectors>
       <EndpointProperties><![CDATA[[{"Name":"integrity","Value":"sha256-G64rcgm1yrLnsMYra34Zlsi2qErAqPZoxynHCAir8Rk="}]]]></EndpointProperties>
-      <ResponseHeaders><![CDATA[[{"Name":"Accept-Ranges","Value":"bytes"},{"Name":"Cache-Control","Value":"no-cache"},{"Name":"Content-Length","Value":"5923"},{"Name":"Content-Type","Value":"text/css"},{"Name":"ETag","Value":"\u0022G64rcgm1yrLnsMYra34Zlsi2qErAqPZoxynHCAir8Rk=\u0022"},{"Name":"Last-Modified","Value":"Sat, 11 Jan 2025 19:06:46 GMT"}]]]></ResponseHeaders>
+      <ResponseHeaders><![CDATA[[{"Name":"Accept-Ranges","Value":"bytes"},{"Name":"Cache-Control","Value":"no-cache"},{"Name":"Content-Length","Value":"5923"},{"Name":"Content-Type","Value":"text/css"},{"Name":"ETag","Value":"\u0022G64rcgm1yrLnsMYra34Zlsi2qErAqPZoxynHCAir8Rk=\u0022"},{"Name":"Last-Modified","Value":"Thu, 16 Jan 2025 11:14:55 GMT"}]]]></ResponseHeaders>
     </StaticWebAssetEndpoint>
     <StaticWebAssetEndpoint Include="_content/EcoSystemsAutomation/EcoSystemsAutomation.xh6o7tuxh0.bundle.scp.css">
       <AssetFile>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..\staticwebassets\EcoSystemsAutomation.xh6o7tuxh0.bundle.scp.css'))</AssetFile>
       <Selectors><![CDATA[[]]]></Selectors>
       <EndpointProperties><![CDATA[[{"Name":"fingerprint","Value":"xh6o7tuxh0"},{"Name":"integrity","Value":"sha256-G64rcgm1yrLnsMYra34Zlsi2qErAqPZoxynHCAir8Rk="},{"Name":"label","Value":"_content/EcoSystemsAutomation/EcoSystemsAutomation.bundle.scp.css"}]]]></EndpointProperties>
-      <ResponseHeaders><![CDATA[[{"Name":"Accept-Ranges","Value":"bytes"},{"Name":"Cache-Control","Value":"max-age=31536000, immutable"},{"Name":"Content-Length","Value":"5923"},{"Name":"Content-Type","Value":"text/css"},{"Name":"ETag","Value":"\u0022G64rcgm1yrLnsMYra34Zlsi2qErAqPZoxynHCAir8Rk=\u0022"},{"Name":"Last-Modified","Value":"Sat, 11 Jan 2025 19:06:46 GMT"}]]]></ResponseHeaders>
+      <ResponseHeaders><![CDATA[[{"Name":"Accept-Ranges","Value":"bytes"},{"Name":"Cache-Control","Value":"max-age=31536000, immutable"},{"Name":"Content-Length","Value":"5923"},{"Name":"Content-Type","Value":"text/css"},{"Name":"ETag","Value":"\u0022G64rcgm1yrLnsMYra34Zlsi2qErAqPZoxynHCAir8Rk=\u0022"},{"Name":"Last-Modified","Value":"Thu, 16 Jan 2025 11:14:55 GMT"}]]]></ResponseHeaders>
     </StaticWebAssetEndpoint>
     <StaticWebAssetEndpoint Include="_content/EcoSystemsAutomation/favicon.ifv42okdf2.png">
       <AssetFile>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..\staticwebassets\favicon.png'))</AssetFile>

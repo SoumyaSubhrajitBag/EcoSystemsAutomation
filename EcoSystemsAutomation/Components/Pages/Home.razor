@@ -1,5 +1,5 @@
 ﻿@page "/"
-
+@using EcoSystemsAutomation.Contracts.ServiceContracts
 @using System.Diagnostics
 @using ClosedXML.Excel
 @using TACRunner
@@ -9,6 +9,7 @@
 @inject Iods ods
 @inject IConfiguration configuration
 @inject NotificationService NotificationService
+@inject IPowerAutomateServices _powerAutomateServices;
 
 <PageTitle>Automation Simulation</PageTitle>
 <RadzenCard Class="rz-my-5 rz-mx-auto" Style="max-width: 800px;">
@@ -20,41 +21,41 @@
         <RadzenCard>
             <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.Center" Gap="1rem">
                 <RadzenButton Icon="cloud_download" Text="Extract From ODS"
-                            ButtonStyle="ButtonStyle.Primary"
-                            Size="ButtonSize.Medium"
-                            Click="@(async () => await HandleOperation(PrepareData, "Data Extraction"))"
-                            Disabled="@isAnyOperationRunning"
-                            IsBusy="@isExtractRunning" />
+                ButtonStyle="ButtonStyle.Primary"
+                Size="ButtonSize.Medium"
+                Click="@(async () => await HandleOperation(PrepareData, "Data Extraction"))"
+                Disabled="@isAnyOperationRunning"
+                IsBusy="@isExtractRunning" />
             </RadzenStack>
         </RadzenCard>
 
         <RadzenCard>
             <RadzenStack Orientation="Orientation.Vertical" Gap="1rem">
-                <RadzenButton Icon="settings" Text="DCP-ALA-EX-CRT-AMS-BILL-CLM-PAM-NOC-EPM"
-                            ButtonStyle="ButtonStyle.Success"
-                            Size="ButtonSize.Medium"
-                            Class="w-100"
-                              Click="@(async () => await HandleOperation(RunPass1, "ALA-EX-CRT-AMS-BILL-CLM-PAM-NOC-EPM"))"
-                            Disabled="@isAnyOperationRunning"
-                            IsBusy="@isPass1Running" />
+                <RadzenButton Icon="settings" Text="DCP-ALA-ES-CRT-AMS-BILL-CLM-PAM-NOC-EPM"
+                ButtonStyle="ButtonStyle.Success"
+                Size="ButtonSize.Medium"
+                Class="w-100"
+                Click="@(async () => await HandleOperation(RunPass1, "ALA-ES-CRT-AMS-BILL-CLM-PAM-NOC-EPM"))"
+                Disabled="@isAnyOperationRunning"
+                IsBusy="@isPass1Running" />
 
                 <RadzenButton Icon="settings" Text="LC360-UAT"
-                            ButtonStyle="ButtonStyle.Success"
-                            Size="ButtonSize.Medium"
-                            Class="w-100"
-                              Click="@(async () => await HandleOperation(RunPass2, "LC360-UAT"))"
-                            Disabled="@isAnyOperationRunning"
-                            IsBusy="@isPass2Running" />
+                ButtonStyle="ButtonStyle.Success"
+                Size="ButtonSize.Medium"
+                Class="w-100"
+                Click="@(async () => await HandleOperation(RunPass2, "LC360-UAT"))"
+                Disabled="@isAnyOperationRunning"
+                IsBusy="@isPass2Running" />
 
-                @* <RadzenButton Icon="settings" Text="EX-BILL-CLM-PAM"
-                            ButtonStyle="ButtonStyle.Success"
-                            Size="ButtonSize.Medium"
-                            Class="w-100"
-                            Click="@(async () => await HandleOperation(RunPass3, "EX-BILL-CLM-PAM"))"
-                            Disabled="@isAnyOperationRunning"
-                            IsBusy="@isPass3Running" />
+                <RadzenButton Icon="settings" Text="DCP-IR-MR-Esign"
+                ButtonStyle="ButtonStyle.Success"
+                Size="ButtonSize.Medium"
+                Class="w-100"
+                Click="@(async () => await HandleOperation(RunPass3, "DCP-IR-MR-Esign"))"
+                Disabled="@isAnyOperationRunning"
+                IsBusy="@isPass3Running" />
 
-                <RadzenButton Icon="settings" Text="NOC-EPM"
+                @* <RadzenButton Icon="settings" Text="NOC-EPM"
                             ButtonStyle="ButtonStyle.Success"
                             Size="ButtonSize.Medium"
                             Class="w-100"
@@ -96,11 +97,11 @@
             switch (operationName)
             {
                 case "Data Extraction": isExtractRunning = true; break;
-                case "ALA-EX-CRT-AMS-BILL-CLM-PAM-NOC-EPM": isPass1Running = true; break;
+                case "ALA-ES-CRT-AMS-BILL-CLM-PAM-NOC-EPM": isPass1Running = true; break;
                 case "LC360-UAT": isPass2Running = true; break;
-                // case "EX-BILL-CLM-PAM": isPass3Running = true; break;
-                // case "NOC-EPM": isPass4Running = true; break;
-                // case "EPM-AMS_CRT": isPass5Running = true; break;
+                case "DCP-IR-MR-Esign": isPass3Running = true; break;
+                    // case "NOC-EPM": isPass4Running = true; break;
+                    // case "EPM-AMS_CRT": isPass5Running = true; break;
             }
 
             await Task.Run(operation);
@@ -129,11 +130,11 @@
             switch (operationName)
             {
                 case "Data Extraction": isExtractRunning = false; break;
-                case "ALA-EX-CRT-AMS-BILL-CLM-PAM-NOC-EPM": isPass1Running = false; break;
+                case "ALA-ES-CRT-AMS-BILL-CLM-PAM-NOC-EPM": isPass1Running = false; break;
                 case "LC360-UAT": isPass2Running = false; break;
-                // case "EX-BILL-CLM-PAM": isPass3Running = false; break;
-                // case "NOC-EPM": isPass4Running = false; break;
-                // case "EPM-AMS_CRT": isPass5Running = false; break;
+                case "DCP-IR-MR-Esign": isPass3Running = false; break;
+                    // case "NOC-EPM": isPass4Running = false; break;
+                    // case "EPM-AMS_CRT": isPass5Running = false; break;
             }
         }
     }
@@ -166,10 +167,10 @@
         }
 
 
-        string scriptFilePath = @"X:\AutomationScript\ALA-EX-CRT-AMS-BILL-CLM-PAM-NOC-EPM\ALA-EX-CRT-AMS-BILL-CLM-PAM-NOC-EPM.xml";
+        string scriptFilePath = @"X:\AutomationScript\ALA-ES-CRT-AMS-BILL-CLM-PAM-NOC-EPM\ALA-ES-CRT-AMS-BILL-CLM-PAM-NOC-EPM.xml";
         var pass1 = new TACRunner();
 
-        pass1.AutomationPass1(scriptFilePath, $"{newFolderPath}\\ALA-EX-CRT-AMS-BILL-CLM-PAM-NOC-EPMResults.xml");
+        pass1.AutomationPass1(scriptFilePath, $"{newFolderPath}\\ALA-ES-CRT-AMS-BILL-CLM-PAM-NOC-EPMResults.xml");
 
     }
 
@@ -207,40 +208,14 @@
 
     }
 
-    // private void RunPass3()
-    // {
-    //     string filePath = configuration["ThirdTest"];
+    private void RunPass3()
+    {
+        string targetDir = "X:\\AutomationScript\\PowerAutomateScript";
+        string SCRIPTS_PATH = "X:\\AutomationScript\\PowerAutomateScript\\DCP_ImageRight_MR_Validation_OverRide - Power Automate.url"; // Update this to your scripts path
 
-    //     if (string.IsNullOrEmpty(filePath))
-    //     {
-    //         Console.WriteLine("Invalid file path.");
-    //         return;
-    //     }
+        _powerAutomateServices.LoadPowerAutomate(targetDir, SCRIPTS_PATH);
 
-    //     // Format the current date as "yyyy-MM-dd"
-    //     string currentDateFolderName = DateTime.Now.ToString("MM-dd-yyyy");
-
-    //     // Create the full path for the new folder
-    //     string newFolderPath = Path.Combine(filePath, currentDateFolderName);
-
-    //     // Create the folder if it doesn't already exist
-    //     if (!Directory.Exists(newFolderPath))
-    //     {
-    //         Directory.CreateDirectory(newFolderPath);
-    //         Console.WriteLine($"Folder created: {newFolderPath}");
-    //     }
-    //     else
-    //     {
-    //         Console.WriteLine($"Folder already exists: {newFolderPath}");
-    //     }
-
-
-    //     string scriptFilePath = @"X:\AutomationScript\EX-Billing-CLM-PAM\ExpressServe-Billing-Claims-PAM.xml";
-    //     var pass2 = new TACRunner();
-
-    //     pass2.AutomationPass1(scriptFilePath, $"{newFolderPath}\\ExpressServe-Billing-Claims-PAMResult.xml");
-
-    // }
+    }
 
     // private void RunPass4()
     // {
