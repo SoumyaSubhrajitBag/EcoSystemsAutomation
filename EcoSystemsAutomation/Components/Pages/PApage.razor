@@ -1,0 +1,296 @@
+﻿@page "/PApage"
+@using Radzen
+@using System.Text.RegularExpressions
+@using System.Diagnostics
+@using System.IO
+@inject NotificationService NotificationService
+@rendermode InteractiveServer
+
+<div class="container">
+    <div class="card shadow-lg rounded-lg p-4 mb-4">
+        <h3 class="text-primary mb-4">Power Automate Script Runner</h3>
+
+        <div class="mb-4">
+            <RadzenText TextStyle="TextStyle.H6">Available Scripts (@scripts.Count)</RadzenText>
+            <div class="d-flex flex-wrap gap-2 mb-3">
+                @foreach (var script in scripts)
+                {
+                    <RadzenBadge BadgeStyle="BadgeStyle.Light" Text="@Path.GetFileName(script)" />
+                }
+            </div>
+        </div>
+
+        @if (isRunning)
+        {
+            <div class="mb-4">
+                <RadzenProgressBar Value="@((currentScriptIndex / (float)scripts.Count) * 100)"
+                ShowValue="true"
+                Mode="ProgressBarMode.Determinate" />
+                <RadzenText TextStyle="TextStyle.Body1" class="mt-2 text-center">
+                    Running script @(currentScriptIndex + 1) of @scripts.Count...
+                </RadzenText>
+            </div>
+        }
+
+        <div class="d-flex flex-column gap-4">
+            <div class="d-flex align-items-center gap-3">
+                <RadzenButton Icon="play_arrow"
+                Text="Run All Scripts"
+                ButtonStyle="ButtonStyle.Primary"
+                Click="@RunAllScripts"
+                Disabled="@isRunning"
+                class="px-4" />
+
+                @if (isRunning)
+                {
+                    <RadzenButton Icon="stop"
+                    Text="Stop"
+                    ButtonStyle="ButtonStyle.Danger"
+                    Click="@StopScript"
+                    class="px-4" />
+                }
+            </div>
+
+            @if (scriptOutput.Any())
+            {
+                <RadzenCard class="mt-4">
+                    <RadzenText TextStyle="TextStyle.H6" class="mb-3">Script Output</RadzenText>
+                    <div class="bg-light p-3 rounded" style="max-height: 300px; overflow-y: auto;">
+                        @foreach (var line in scriptOutput)
+                        {
+                            <div class="mb-1">@line</div>
+                        }
+                    </div>
+                </RadzenCard>
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    private bool isRunning = false;
+    private Process currentProcess;
+    private List<string> scriptOutput = new List<string>();
+    private List<string> scripts = new List<string>();
+    private int currentScriptIndex = 0;
+    private const string targetDir = "X:\\AutomationScript\\PowerAutomateScript";
+    private const string SCRIPTS_PATH = "X:\\AutomationScript\\PowerAutomateScript\\DCP_ImageRight_MR_Validation_OverRide - Power Automate.url"; // Update this to your scripts path
+    
+    private CancellationTokenSource cts = new CancellationTokenSource();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadScripts();
+    }
+
+    private async Task LoadScripts()
+    {
+        try
+        {
+            if (Directory.GetFiles(targetDir).Contains(SCRIPTS_PATH))
+            {
+                //Notify the User
+                NotificationService.Notify(new NotificationMessage
+                    {
+                        Severity = NotificationSeverity.Info,
+                        Summary = "Scripts Loaded",
+                        Detail = $"{scripts.Count} scripts found.",
+                        Duration = 4000
+                    });
+
+                //Invoke Power Automate
+                try
+                {
+                    // Simulate a double-click by invoking the file
+                    Process.Start(new ProcessStartInfo
+                        {
+                            FileName = SCRIPTS_PATH,
+                            UseShellExecute = true, // Ensure the default application opens the file
+                            WindowStyle = ProcessWindowStyle.Maximized // Attempt to maximize the window
+                        });
+                }
+                catch (Exception ex)
+                {
+                    throw;
+                }
+            }
+            else
+            {
+                NotificationService.Notify(new NotificationMessage
+                    {
+                        Severity = NotificationSeverity.Error,
+                        Summary = "Directory Not Found",
+                        Detail = $"The scripts directory {SCRIPTS_PATH} was not found.",
+                        Duration = 6000
+                    });
+            }
+        }
+        catch (Exception ex)
+        {
+            NotificationService.Notify(new NotificationMessage
+                {
+                    Severity = NotificationSeverity.Error,
+                    Summary = "Error Loading Scripts",
+                    Detail = ex.Message,
+                    Duration = 6000
+                });
+        }
+    }
+
+    private async Task RunAllScripts()
+    {
+        try
+        {
+            isRunning = true;
+            currentScriptIndex = 0;
+            scriptOutput.Clear();
+            cts = new CancellationTokenSource();
+
+            foreach (var scriptPath in scripts)
+            {
+                if (cts.Token.IsCancellationRequested)
+                    break;
+
+                scriptOutput.Add($"Starting script: {Path.GetFileName(scriptPath)}");
+                await RunSingleScript(scriptPath);
+                currentScriptIndex++;
+                StateHasChanged();
+            }
+
+            NotificationService.Notify(new NotificationMessage
+                {
+                    Severity = NotificationSeverity.Success,
+                    Summary = "All Scripts Completed",
+                    Detail = $"Successfully ran {scripts.Count} scripts.",
+                    Duration = 4000
+                });
+        }
+        catch (Exception ex)
+        {
+            NotificationService.Notify(new NotificationMessage
+                {
+                    Severity = NotificationSeverity.Error,
+                    Summary = "Error Running Scripts",
+                    Detail = ex.Message,
+                    Duration = 6000
+                });
+        }
+        finally
+        {
+            isRunning = false;
+            currentScriptIndex = 0;
+            StateHasChanged();
+        }
+    }
+
+    private async Task RunSingleScript(string scriptPath)
+    {
+        try
+        {
+            var psPath = Path.Combine(scriptPath, "run.ps1");
+            var cliPath = Path.Combine(scriptPath, "flow_name.paf");
+
+            var startInfo = new ProcessStartInfo
+                {
+                    FileName = File.Exists(psPath) ? "powershell.exe" : "cmd.exe",
+                    Arguments = File.Exists(psPath)
+                        ? $"-NoProfile -ExecutionPolicy Bypass -File \"{psPath}\""
+                        : $"/c start padcli.exe /run /path:\"{cliPath}\"",
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true,
+                    UseShellExecute = false,
+                    CreateNoWindow = true
+                };
+
+            using (currentProcess = new Process { StartInfo = startInfo })
+            {
+                currentProcess.OutputDataReceived += (sender, e) =>
+                {
+                    if (!string.IsNullOrEmpty(e.Data))
+                    {
+                        InvokeAsync(() =>
+                        {
+                            scriptOutput.Add(e.Data);
+                            StateHasChanged();
+                        });
+                    }
+                };
+
+                currentProcess.ErrorDataReceived += (sender, e) =>
+                {
+                    if (!string.IsNullOrEmpty(e.Data))
+                    {
+                        InvokeAsync(() =>
+                        {
+                            scriptOutput.Add($"Error: {e.Data}");
+                            StateHasChanged();
+                        });
+                    }
+                };
+
+                currentProcess.Start();
+                currentProcess.BeginOutputReadLine();
+                currentProcess.BeginErrorReadLine();
+
+                // Wait for process to complete or cancellation
+                await Task.Run(() =>
+                {
+                    currentProcess.WaitForExit();
+                }, cts.Token);
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            scriptOutput.Add($"Script cancelled: {Path.GetFileName(scriptPath)}");
+        }
+        catch (Exception ex)
+        {
+            scriptOutput.Add($"Error running script {Path.GetFileName(scriptPath)}: {ex.Message}");
+        }
+    }
+
+    private async Task StopScript()
+    {
+        try
+        {
+            cts.Cancel();
+
+            if (currentProcess != null && !currentProcess.HasExited)
+            {
+                currentProcess.Kill();
+            }
+
+            NotificationService.Notify(new NotificationMessage
+                {
+                    Severity = NotificationSeverity.Info,
+                    Summary = "Scripts Stopped",
+                    Detail = "All running scripts have been stopped.",
+                    Duration = 4000
+                });
+        }
+        catch (Exception ex)
+        {
+            NotificationService.Notify(new NotificationMessage
+                {
+                    Severity = NotificationSeverity.Error,
+                    Summary = "Error Stopping Scripts",
+                    Detail = ex.Message,
+                    Duration = 6000
+                });
+        }
+        finally
+        {
+            isRunning = false;
+            currentProcess?.Dispose();
+            currentProcess = null;
+            StateHasChanged();
+        }
+    }
+
+    public void Dispose()
+    {
+        cts.Cancel();
+        cts.Dispose();
+        StopScript().Wait();
+    }
+}

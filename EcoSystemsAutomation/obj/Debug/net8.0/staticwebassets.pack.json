@@ -1,0 +1,45 @@
+{
+  "Files": [
+    {
+      "Id": "T:\\EcoSystemAutomation\\EcoSystemsAutomation\\obj\\Debug\\net8.0\\scopedcss\\projectbundle\\EcoSystemsAutomation.bundle.scp.css",
+      "PackagePath": "staticwebassets\\EcoSystemsAutomation.xh6o7tuxh0.bundle.scp.css"
+    },
+    {
+      "Id": "T:\\EcoSystemAutomation\\EcoSystemsAutomation\\wwwroot\\app.css",
+      "PackagePath": "staticwebassets\\app.css"
+    },
+    {
+      "Id": "T:\\EcoSystemAutomation\\EcoSystemsAutomation\\wwwroot\\bootstrap\\bootstrap.min.css",
+      "PackagePath": "staticwebassets\\bootstrap\\bootstrap.min.css"
+    },
+    {
+      "Id": "T:\\EcoSystemAutomation\\EcoSystemsAutomation\\wwwroot\\bootstrap\\bootstrap.min.css.map",
+      "PackagePath": "staticwebassets\\bootstrap\\bootstrap.min.css.map"
+    },
+    {
+      "Id": "T:\\EcoSystemAutomation\\EcoSystemsAutomation\\wwwroot\\favicon.png",
+      "PackagePath": "staticwebassets\\favicon.png"
+    },
+    {
+      "Id": "obj\\Debug\\net8.0\\staticwebassets\\msbuild.EcoSystemsAutomation.Microsoft.AspNetCore.StaticWebAssetEndpoints.props",
+      "PackagePath": "build\\Microsoft.AspNetCore.StaticWebAssetEndpoints.props"
+    },
+    {
+      "Id": "obj\\Debug\\net8.0\\staticwebassets\\msbuild.EcoSystemsAutomation.Microsoft.AspNetCore.StaticWebAssets.props",
+      "PackagePath": "build\\Microsoft.AspNetCore.StaticWebAssets.props"
+    },
+    {
+      "Id": "obj\\Debug\\net8.0\\staticwebassets\\msbuild.build.EcoSystemsAutomation.props",
+      "PackagePath": "build\\EcoSystemsAutomation.props"
+    },
+    {
+      "Id": "obj\\Debug\\net8.0\\staticwebassets\\msbuild.buildMultiTargeting.EcoSystemsAutomation.props",
+      "PackagePath": "buildMultiTargeting\\EcoSystemsAutomation.props"
+    },
+    {
+      "Id": "obj\\Debug\\net8.0\\staticwebassets\\msbuild.buildTransitive.EcoSystemsAutomation.props",
+      "PackagePath": "buildTransitive\\EcoSystemsAutomation.props"
+    }
+  ],
+  "ElementsToRemove": []
+}

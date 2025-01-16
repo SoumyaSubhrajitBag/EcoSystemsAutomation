@@ -1,0 +1,431 @@
+﻿@page "/"
+
+@using System.Diagnostics
+@using ClosedXML.Excel
+@using TACRunner
+@using Radzen
+@using Radzen.Blazor
+@rendermode InteractiveServer
+@inject Iods ods
+@inject IConfiguration configuration
+@inject NotificationService NotificationService
+
+<PageTitle>Automation Simulation</PageTitle>
+<RadzenCard Class="rz-my-5 rz-mx-auto" Style="max-width: 800px;">
+    <RadzenStack Orientation="Orientation.Vertical" Gap="2rem" Class="rz-p-4">
+        <RadzenText TextStyle="TextStyle.H3" TextAlign="TextAlign.Center">
+            Automation Simulation Dashboard
+        </RadzenText>
+
+        <RadzenCard>
+            <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.Center" Gap="1rem">
+                <RadzenButton Icon="cloud_download" Text="Extract From ODS"
+                            ButtonStyle="ButtonStyle.Primary"
+                            Size="ButtonSize.Medium"
+                            Click="@(async () => await HandleOperation(PrepareData, "Data Extraction"))"
+                            Disabled="@isAnyOperationRunning"
+                            IsBusy="@isExtractRunning" />
+            </RadzenStack>
+        </RadzenCard>
+
+        <RadzenCard>
+            <RadzenStack Orientation="Orientation.Vertical" Gap="1rem">
+                <RadzenButton Icon="settings" Text="DCP-ALA-EX-CRT-AMS-BILL-CLM-PAM-NOC-EPM"
+                            ButtonStyle="ButtonStyle.Success"
+                            Size="ButtonSize.Medium"
+                            Class="w-100"
+                              Click="@(async () => await HandleOperation(RunPass1, "ALA-EX-CRT-AMS-BILL-CLM-PAM-NOC-EPM"))"
+                            Disabled="@isAnyOperationRunning"
+                            IsBusy="@isPass1Running" />
+
+                <RadzenButton Icon="settings" Text="LC360-UAT"
+                            ButtonStyle="ButtonStyle.Success"
+                            Size="ButtonSize.Medium"
+                            Class="w-100"
+                              Click="@(async () => await HandleOperation(RunPass2, "LC360-UAT"))"
+                            Disabled="@isAnyOperationRunning"
+                            IsBusy="@isPass2Running" />
+
+                @* <RadzenButton Icon="settings" Text="EX-BILL-CLM-PAM"
+                            ButtonStyle="ButtonStyle.Success"
+                            Size="ButtonSize.Medium"
+                            Class="w-100"
+                            Click="@(async () => await HandleOperation(RunPass3, "EX-BILL-CLM-PAM"))"
+                            Disabled="@isAnyOperationRunning"
+                            IsBusy="@isPass3Running" />
+
+                <RadzenButton Icon="settings" Text="NOC-EPM"
+                            ButtonStyle="ButtonStyle.Success"
+                            Size="ButtonSize.Medium"
+                            Class="w-100"
+                            Click="@(async () => await HandleOperation(RunPass4, "NOC-EPM"))"
+                            Disabled="@isAnyOperationRunning"
+                            IsBusy="@isPass4Running" />
+
+                <RadzenButton Icon="settings" Text="EX-AMS-CRT"
+                            ButtonStyle="ButtonStyle.Success"
+                            Size="ButtonSize.Medium"
+                            Class="w-100"
+                            Click="@(async () => await HandleOperation(RunPass5, "EX-AMS-CRT"))"
+                            Disabled="@isAnyOperationRunning"
+                            IsBusy="@isPass5Running" /> *@
+            </RadzenStack>
+        </RadzenCard>
+    </RadzenStack>
+</RadzenCard>
+
+@code {
+    private string currentCount = "";
+
+    private bool isExtractRunning;
+    private bool isPass1Running;
+    private bool isPass2Running;
+    private bool isPass3Running;
+    private bool isPass4Running;
+    private bool isPass5Running;
+
+    private bool isAnyOperationRunning =>
+        isExtractRunning || isPass1Running || isPass2Running ||
+        isPass3Running || isPass4Running || isPass5Running;
+
+    private async Task HandleOperation(Action operation, string operationName)
+    {
+        try
+        {
+            // Set the appropriate flag based on operation
+            switch (operationName)
+            {
+                case "Data Extraction": isExtractRunning = true; break;
+                case "ALA-EX-CRT-AMS-BILL-CLM-PAM-NOC-EPM": isPass1Running = true; break;
+                case "LC360-UAT": isPass2Running = true; break;
+                // case "EX-BILL-CLM-PAM": isPass3Running = true; break;
+                // case "NOC-EPM": isPass4Running = true; break;
+                // case "EPM-AMS_CRT": isPass5Running = true; break;
+            }
+
+            await Task.Run(operation);
+
+            NotificationService.Notify(new NotificationMessage
+                {
+                    Severity = NotificationSeverity.Success,
+                    Summary = "Success",
+                    Detail = $"{operationName} completed successfully",
+                    Duration = 4000
+                });
+        }
+        catch (Exception ex)
+        {
+            NotificationService.Notify(new NotificationMessage
+                {
+                    Severity = NotificationSeverity.Error,
+                    Summary = "Error",
+                    Detail = $"Error in {operationName}: {ex.Message}",
+                    Duration = 4000
+                });
+        }
+        finally
+        {
+            // Reset the appropriate flag
+            switch (operationName)
+            {
+                case "Data Extraction": isExtractRunning = false; break;
+                case "ALA-EX-CRT-AMS-BILL-CLM-PAM-NOC-EPM": isPass1Running = false; break;
+                case "LC360-UAT": isPass2Running = false; break;
+                // case "EX-BILL-CLM-PAM": isPass3Running = false; break;
+                // case "NOC-EPM": isPass4Running = false; break;
+                // case "EPM-AMS_CRT": isPass5Running = false; break;
+            }
+        }
+    }
+
+    private void RunPass1()
+    {
+        string filePath = configuration["FirstTest"];
+
+        if (string.IsNullOrEmpty(filePath))
+        {
+            Console.WriteLine("Invalid file path.");
+            return;
+        }
+
+        // Format the current date as "yyyy-MM-dd"
+        string currentDateFolderName = DateTime.Now.ToString("MM-dd-yyyy");
+
+        // Create the full path for the new folder
+        string newFolderPath = Path.Combine(filePath, currentDateFolderName);
+
+        // Create the folder if it doesn't already exist
+        if (!Directory.Exists(newFolderPath))
+        {
+            Directory.CreateDirectory(newFolderPath);
+            Console.WriteLine($"Folder created: {newFolderPath}");
+        }
+        else
+        {
+            Console.WriteLine($"Folder already exists: {newFolderPath}");
+        }
+
+
+        string scriptFilePath = @"X:\AutomationScript\ALA-EX-CRT-AMS-BILL-CLM-PAM-NOC-EPM\ALA-EX-CRT-AMS-BILL-CLM-PAM-NOC-EPM.xml";
+        var pass1 = new TACRunner();
+
+        pass1.AutomationPass1(scriptFilePath, $"{newFolderPath}\\ALA-EX-CRT-AMS-BILL-CLM-PAM-NOC-EPMResults.xml");
+
+    }
+
+    private void RunPass2()
+    {
+        string filePath = configuration["SecondTest"];
+
+        if (string.IsNullOrEmpty(filePath))
+        {
+            Console.WriteLine("Invalid file path.");
+            return;
+        }
+
+        // Format the current date as "yyyy-MM-dd"
+        string currentDateFolderName = DateTime.Now.ToString("MM-dd-yyyy");
+
+        // Create the full path for the new folder
+        string newFolderPath = Path.Combine(filePath, currentDateFolderName);
+
+        // Create the folder if it doesn't already exist
+        if (!Directory.Exists(newFolderPath))
+        {
+            Directory.CreateDirectory(newFolderPath);
+            Console.WriteLine($"Folder created: {newFolderPath}");
+        }
+        else
+        {
+            Console.WriteLine($"Folder already exists: {newFolderPath}");
+        }
+
+        string scriptFilePath = @"X:\AutomationScript\LC360-UAT\LC360-UAT.xml";
+        var pass2 = new TACRunner();
+
+        pass2.AutomationPass1(scriptFilePath, $"{newFolderPath}\\LC360-UATResult.xml");
+
+    }
+
+    // private void RunPass3()
+    // {
+    //     string filePath = configuration["ThirdTest"];
+
+    //     if (string.IsNullOrEmpty(filePath))
+    //     {
+    //         Console.WriteLine("Invalid file path.");
+    //         return;
+    //     }
+
+    //     // Format the current date as "yyyy-MM-dd"
+    //     string currentDateFolderName = DateTime.Now.ToString("MM-dd-yyyy");
+
+    //     // Create the full path for the new folder
+    //     string newFolderPath = Path.Combine(filePath, currentDateFolderName);
+
+    //     // Create the folder if it doesn't already exist
+    //     if (!Directory.Exists(newFolderPath))
+    //     {
+    //         Directory.CreateDirectory(newFolderPath);
+    //         Console.WriteLine($"Folder created: {newFolderPath}");
+    //     }
+    //     else
+    //     {
+    //         Console.WriteLine($"Folder already exists: {newFolderPath}");
+    //     }
+
+
+    //     string scriptFilePath = @"X:\AutomationScript\EX-Billing-CLM-PAM\ExpressServe-Billing-Claims-PAM.xml";
+    //     var pass2 = new TACRunner();
+
+    //     pass2.AutomationPass1(scriptFilePath, $"{newFolderPath}\\ExpressServe-Billing-Claims-PAMResult.xml");
+
+    // }
+
+    // private void RunPass4()
+    // {
+    //     string filePath = configuration["FourthTest"];
+
+    //     if (string.IsNullOrEmpty(filePath))
+    //     {
+    //         Console.WriteLine("Invalid file path.");
+    //         return;
+    //     }
+
+    //     // Format the current date as "yyyy-MM-dd"
+    //     string currentDateFolderName = DateTime.Now.ToString("MM-dd-yyyy");
+
+    //     // Create the full path for the new folder
+    //     string newFolderPath = Path.Combine(filePath, currentDateFolderName);
+
+    //     // Create the folder if it doesn't already exist
+    //     if (!Directory.Exists(newFolderPath))
+    //     {
+    //         Directory.CreateDirectory(newFolderPath);
+    //         Console.WriteLine($"Folder created: {newFolderPath}");
+    //     }
+    //     else
+    //     {
+    //         Console.WriteLine($"Folder already exists: {newFolderPath}");
+    //     }
+
+
+    //     string scriptFilePath = @"X:\AutomationScript\NOC_EPM\NOC_EPM.xml";
+    //     var pass2 = new TACRunner();
+
+    //     pass2.AutomationPass1(scriptFilePath, $"{newFolderPath}\\NOC_EPMResult.xml");
+
+    // }
+
+    // private void RunPass5()
+    // {
+    //     string filePath = configuration["FifthTest"];
+
+    //     if (string.IsNullOrEmpty(filePath))
+    //     {
+    //         Console.WriteLine("Invalid file path.");
+    //         return;
+    //     }
+
+    //     // Format the current date as "yyyy-MM-dd"
+    //     string currentDateFolderName = DateTime.Now.ToString("MM-dd-yyyy");
+
+    //     // Create the full path for the new folder
+    //     string newFolderPath = Path.Combine(filePath, currentDateFolderName);
+
+    //     // Create the folder if it doesn't already exist
+    //     if (!Directory.Exists(newFolderPath))
+    //     {
+    //         Directory.CreateDirectory(newFolderPath);
+    //         Console.WriteLine($"Folder created: {newFolderPath}");
+    //     }
+    //     else
+    //     {
+    //         Console.WriteLine($"Folder already exists: {newFolderPath}");
+    //     }
+
+
+    //     string scriptFilePath = @"X:\AutomationScript\EX-AMS-CRT\ExpressServe_EndToEnd_Scenario_Final_AMS_09.xml";
+    //     var pass2 = new TACRunner();
+
+    //     pass2.AutomationPass1(scriptFilePath, $"{newFolderPath}\\ExpressServe_EndToEnd_Scenario_Final_AMSResult.xml");
+
+    // }
+
+
+
+    private void PrepareData()
+    {
+        string filePath = configuration["InputExcel"]; // @"X:\Automation DataDump\InputExcel.xlsx";
+        var list = PullPolicyNumbers(filePath);
+        if (list != null && list.Count > 0)
+        {
+            createDailyAutomationFolder(filePath);
+            ods.ExtractPolicies(list);
+        }
+    }
+
+
+
+    private List<string> PullPolicyNumbers(string filePath)
+    {
+        // List to store Policy# values
+        List<string> policyNumbers = new List<string>();
+
+        // Ensure the file exists
+        if (!System.IO.File.Exists(filePath))
+        {
+            Console.WriteLine($"File not found: {filePath}");
+            return null;
+        }
+
+        // Load the Excel file
+        using (var workbook = new XLWorkbook(filePath))
+        {
+            var worksheet = workbook.Worksheet(1); // Assuming the data is in the first worksheet
+
+            // Find the "Policy#" and "Status" column indexes
+            int policyColumnIndex = 0;
+            int statusColumnIndex = 0;
+            int transColumnIndex = 0;
+            int lobColumnIndex = 0;
+
+            // Read the header row (assumes headers are in the first row)
+            var headerRow = worksheet.Row(1);
+            foreach (var cell in headerRow.CellsUsed())
+            {
+                string header = cell.GetString().Trim();
+                if (header.Equals("Policy#", StringComparison.OrdinalIgnoreCase))
+                    policyColumnIndex = cell.Address.ColumnNumber;
+                else if (header.Equals("Status", StringComparison.OrdinalIgnoreCase))
+                    statusColumnIndex = cell.Address.ColumnNumber;
+                else if (header.Equals("Transaction", StringComparison.OrdinalIgnoreCase))
+                    transColumnIndex = cell.Address.ColumnNumber;
+                else if (header.Equals("LOB", StringComparison.OrdinalIgnoreCase))
+                    lobColumnIndex = cell.Address.ColumnNumber;
+            }
+
+            if (policyColumnIndex == 0 || statusColumnIndex == 0)
+            {
+                Console.WriteLine("Required columns not found.");
+                return null;
+            }
+
+            // Iterate through the rows starting from the second row
+            foreach (var row in worksheet.RowsUsed().Skip(1))
+            {
+                string status = row.Cell(statusColumnIndex).GetString().Trim();
+                string lob = row.Cell(lobColumnIndex).GetString().Trim();
+                string transaction = row.Cell(transColumnIndex).GetString().Trim();
+                if (status.Equals("Pass", StringComparison.OrdinalIgnoreCase) && (lob.Equals("GL") || lob.Equals("CX")) && transaction.Equals("New Business",StringComparison.OrdinalIgnoreCase))
+                {
+                    string policyNumber = row.Cell(policyColumnIndex).GetString().Trim();
+                    policyNumbers.Add(policyNumber);
+                }
+            }
+
+            foreach (var row in policyNumbers)
+            {
+                Console.WriteLine(row);
+            }
+        }
+
+        return policyNumbers;
+
+    }
+
+    private void createDailyAutomationFolder(string filePath)
+    {
+        string parentFolder = Path.GetDirectoryName(filePath);
+
+        if (string.IsNullOrEmpty(parentFolder))
+        {
+            Console.WriteLine("Invalid file path.");
+            return;
+        }
+
+        // Format the current date as "yyyy-MM-dd"
+        string currentDateFolderName = DateTime.Now.ToString("MM-dd-yyyy");
+
+        // Create the full path for the new folder
+        string newFolderPath = Path.Combine(parentFolder, currentDateFolderName);
+
+
+        // Create the folder if it doesn't already exist
+        if (!Directory.Exists(newFolderPath))
+        {
+            Directory.CreateDirectory(newFolderPath);
+            Console.WriteLine($"Folder created: {newFolderPath}");
+        }
+        else
+        {
+            Console.WriteLine($"Folder already exists: {newFolderPath}");
+        }
+
+        if (!File.Exists(Path.Combine(newFolderPath, Path.GetFileName(filePath))))
+            File.Copy(filePath, Path.Combine(newFolderPath, Path.GetFileName(filePath)));
+    }
+
+
+}
+

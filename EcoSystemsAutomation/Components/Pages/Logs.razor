@@ -1,0 +1,425 @@
+﻿@page "/logs"
+@using Radzen
+@using EcoSystemsAutomation.XMLHelper
+@using System.Text.RegularExpressions
+@inject IXMLDeserializer XMLDeserializer
+@inject NotificationService NotificationService
+@rendermode InteractiveServer
+
+<div class="container">
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary mb-4">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="#">Automation Report</a>
+        </div>
+    </nav>
+
+    <div class="card shadow-lg rounded-lg p-4 mb-4">
+        <h3 class="text-primary mb-4">Test Execution Report</h3>
+        @if (isInitialLoading || isLoading)
+        {
+            <div class="rz-m-12">
+                <RadzenProgressBar Value="100" ShowValue="false" Mode="ProgressBarMode.Indeterminate" />
+                <p class="text-center text-secondary mt-2">Loading reports, please wait...</p>
+            </div>
+        }
+        else
+        {
+            <div class="mb-4">
+                <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.SpaceBetween" AlignItems="AlignItems.Center" Gap="0.5rem" class="rz-p-4">
+                    <div class="d-flex align-items-center">
+                        <RadzenLabel Text="Select Date" Component="RadzenDatePickerBindValue" class="me-2" />
+                        <RadzenDatePicker @bind-Value=@selectedDate Name="RadzenDatePickerBindValue" Change=@OnDateChanged ShowCalendarWeek DateFormat="MM-dd-yyyy" />
+                    </div>
+                    <RadzenButton Icon="refresh" ButtonStyle="ButtonStyle.Primary" Click="@RefreshData" Text="Refresh" class="px-4" />
+                </RadzenStack>
+            </div>
+
+
+
+            <div class="summary-section mb-4">
+                <RadzenCard class="rz-p-4">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h4 class="text-primary">@selectedReportName</h4>
+                        <span>Version: @selectedReportVersion</span>
+                    </div>
+                    <div class="row mt-3">
+                        <div class="col">
+                            <p><strong>Total Tests:</strong> @totalTests</p>
+                            <p><strong>Passed:</strong> @passedTests</p>
+                            <p><strong>Failed:</strong> @failedTests</p>
+                            <p><strong>Warnings:</strong> @warningTests</p>
+                        </div>
+                        <div class="col">
+                            <p><strong>Start Time:</strong> @selectedStartTime</p>
+                            <p><strong>End Time:</strong> @selectedEndTime</p>
+                            <p><strong>Elapsed Time:</strong> @elapsedTime</p>
+                        </div>
+                    </div>
+                </RadzenCard>
+            </div>
+
+            <div class="visual-section mb-4">
+                <RadzenChart>
+                    <RadzenPieSeries Data="@pieChartData" CategoryProperty="Label" ValueProperty="Value" />
+                </RadzenChart>
+            </div>
+
+            <div class="filter-section mb-4">
+                <RadzenTextBox @bind-Value="filterText" Placeholder="Filter by caption..." Style="width: 300px;" />
+                <RadzenDropDown Data="@statusFilters" @bind-Value="selectedStatusFilter" Placeholder="Filter by status" Text="All" Style="width: 200px;" />
+                <RadzenButton Icon="search" Text="Apply Filters" ButtonStyle="ButtonStyle.Primary" Click="@ApplyFilters" />
+            </div>
+
+            <div class="detailed-table-section mb-4">
+                <RadzenDataGrid Data="@filteredReports" TItem="ReportItem" AllowFiltering="false" AllowSorting="true" AllowPaging="true" PageSize="10" RowRender="OnRowRender" Style="height: auto">
+                    <Columns>
+                        <RadzenDataGridColumn TItem="ReportItem" Property="StepNumber" Title="#" TextAlign="TextAlign.Center" Width="50px" />
+                        <RadzenDataGridColumn TItem="ReportItem" Property="Result" Title="Status" TextAlign="TextAlign.Center">
+                            <Template Context="item">
+                                <RadzenBadge BadgeStyle="@(GetBadgeStyle(item.ConsoleOutput))"
+                                Text="@(ParseConsoleOutput(item.ConsoleOutput))" />
+                            </Template>
+                        </RadzenDataGridColumn>
+                        <RadzenDataGridColumn TItem="ReportItem" Property="Caption" Title="Test Object Caption" />
+                        <RadzenDataGridColumn TItem="ReportItem" Property="ActualResult" Title="Actual Result" />
+                        <RadzenDataGridColumn TItem="ReportItem" Property="ExpectedResult" Title="Expected Result" />
+                        <RadzenDataGridColumn TItem="ReportItem" Property="ConsoleOutput" Title="Console Output" />
+                    </Columns>
+                </RadzenDataGrid>
+            </div>
+
+            <div class="navigation-section d-flex justify-content-between align-items-center mt-4">
+                <RadzenButton Icon="chevron_left" Text="Previous" ButtonStyle="ButtonStyle.Light" Disabled="@(!HasPreviousPage)" Click="@PreviousPage" />
+                <span>Page @currentPage of @totalPages</span>
+                <RadzenButton Icon="chevron_right" Text="Next" ButtonStyle="ButtonStyle.Primary" Disabled="@(!HasNextPage)" Click="@NextPage" />
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+    private List<Report> _reports = new();
+    private List<ReportItem> detailedReports = new();
+    private DateTime? selectedDate = DateTime.Now;
+    private bool isLoading = false;
+    private List<ReportItem> filteredReports = new();
+    private string filterText = string.Empty;
+    private bool isInitialLoading = true;
+    private string selectedStatusFilter = string.Empty;
+    private List<string> statusFilters = new List<string> { "All", "Passed", "Failed", "Warning" };
+
+
+    private string selectedReportName;
+    private string selectedReportVersion;
+    private DateTime selectedStartTime;
+    private DateTime selectedEndTime;
+    private string elapsedTime;
+
+    private int totalTests;
+    private int passedTests;
+    private int failedTests;
+    private int warningTests;
+
+    private List<PieChartData> pieChartData;
+
+    private int currentPage = 1;
+    private int totalPages = 1;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            await Task.Delay(3000);
+            await LoadReportData();
+            filteredReports = detailedReports;
+        }
+        finally
+        {
+            isInitialLoading = false;
+        }
+    }
+    private async Task ApplyFilters()
+    {
+        filteredReports = detailedReports
+            .Where(r =>
+                (string.IsNullOrWhiteSpace(filterText) || r.Caption.Contains(filterText, StringComparison.OrdinalIgnoreCase)) &&
+                (selectedStatusFilter == "All" ||
+                 (selectedStatusFilter == "Passed" && r.Result.Equals("Passed", StringComparison.OrdinalIgnoreCase)) ||
+                 (selectedStatusFilter == "Failed" && r.Result.Equals("Failed", StringComparison.OrdinalIgnoreCase)) ||
+                 (selectedStatusFilter == "Warning" && r.Result.Equals("Warning", StringComparison.OrdinalIgnoreCase))))
+            .ToList();
+    }
+    private void OnRowRender(RowRenderEventArgs<ReportItem> args)
+    {
+        if (args.Data.Result == "Failed")
+        {
+            args.Attributes.Add("style", "background-color: rgba(255, 0, 0, 0.1); color: #ff0000;");
+        }
+    }
+
+
+
+    private async Task LoadReportData()
+    {
+        try
+        {
+            if (!selectedDate.HasValue)
+            {
+                NotificationService.Notify(new NotificationMessage
+                    {
+                        Severity = NotificationSeverity.Warning,
+                        Summary = "No Date Selected",
+                        Detail = "Please select a date to load reports",
+                        Duration = 4000
+                    });
+                return;
+            }
+
+            await Task.Run(() =>
+            {
+                var xmlPaths = GetXmlPaths(selectedDate);
+                totalPages = xmlPaths.Count;
+                currentPage = Math.Min(currentPage, totalPages);
+
+                if (currentPage <= totalPages)
+                {
+                    // Load the XML content for the current page
+                    var xmlContent = XMLDeserializer.ReadXML(new List<string> { xmlPaths[currentPage - 1] }).FirstOrDefault();
+                    if (xmlContent != null)
+                    {
+                        var report = new Report();
+                        XMLDeserializer.DeserializeXML(xmlContent, report);
+
+                        // Update the report details and UI components
+                        UpdateReportDetails(report);
+                    }
+                }
+            });
+
+            if (_reports.Any())
+            {
+                // Populate the summary section with the current report's data
+                var report = _reports.FirstOrDefault();
+                if (report != null)
+                {
+                    selectedReportName = report.TestScript.Name;
+                    selectedReportVersion = report.TestScript.Reporter.Version;
+                    selectedStartTime = report.TestScript.Reporter.StartTime;
+                    selectedEndTime = report.TestScript.Reporter.EndTime;
+
+                    elapsedTime = (selectedEndTime - selectedStartTime).ToString("hh\\:mm\\:ss");
+                    totalTests = report.TestScript.Reporter.TotalSteps;
+                    passedTests = report.TestScript.Reporter.PassedCount;
+                    failedTests = report.TestScript.Reporter.FailedCount;
+                    warningTests = report.TestScript.Reporter.WarningCount;
+
+                    // Generate data for the pie chart
+                    pieChartData = new List<PieChartData>
+                    {
+                        new PieChartData { Label = "Passed", Value = passedTests },
+                        new PieChartData { Label = "Failed", Value = failedTests },
+                        new PieChartData { Label = "Warnings", Value = warningTests }
+                    };
+
+                    // Populate detailed reports
+                    detailedReports = report.TestScript.Reporter.ReportItems.Items;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            NotificationService.Notify(new NotificationMessage
+                {
+                    Severity = NotificationSeverity.Error,
+                    Summary = "Error Loading Reports",
+                    Detail = ex.Message,
+                    Duration = 6000
+                });
+        }
+    }
+
+    private void UpdateReportDetails(Report report)
+    {
+        // Update summary section
+        selectedReportName = report.TestScript.Name;
+        selectedReportVersion = report.TestScript.Reporter.Version;
+        selectedStartTime = report.TestScript.Reporter.StartTime;
+        selectedEndTime = report.TestScript.Reporter.EndTime;
+        elapsedTime = (selectedEndTime - selectedStartTime).ToString("hh\\:mm\\:ss");
+
+        totalTests = report.TestScript.Reporter.TotalSteps;
+        passedTests = report.TestScript.Reporter.PassedCount;
+        failedTests = report.TestScript.Reporter.FailedCount;
+        warningTests = report.TestScript.Reporter.WarningCount;
+
+        // Update pie chart data
+        pieChartData = new List<PieChartData>
+    {
+        new PieChartData { Label = "Passed", Value = passedTests },
+        new PieChartData { Label = "Failed", Value = failedTests },
+        new PieChartData { Label = "Warnings", Value = warningTests }
+    };
+
+        // Update the detailed reports for the data grid
+        detailedReports = report.TestScript.Reporter.ReportItems.Items;
+
+        // Apply filters to update the filtered reports
+        ApplyFilters();
+    }
+    private string ExtractConsoleOutputKeyword(string consoleOutput)
+    {
+        if (string.IsNullOrEmpty(consoleOutput))
+        {
+            return "Unknown"; // Default case for empty or null output
+        }
+
+        // Match the first significant keyword (e.g., "WARNING", "FAILED", "PERFORMANCE")
+        var match = System.Text.RegularExpressions.Regex.Match(consoleOutput, @"(?:Start\s*\[\d+\]\s*)*(?:\[\d+\]:\s*)?(WARNING|FAILED|PERFORMANCE|PASSED|EVENT|URL)", RegexOptions.IgnoreCase);
+
+        if (match.Success)
+        {
+            return match.Groups[1].Value.ToUpper(); // Return the matched keyword in uppercase for consistency
+        }
+
+        return "Unknown"; // Default case if no keyword is found
+    }
+
+    private async Task PreviousPage()
+    {
+        if (currentPage > 1)
+        {
+            currentPage--;
+            await LoadReportData(); // Load the previous report
+        }
+    }
+
+    private async Task NextPage()
+    {
+        if (currentPage < totalPages)
+        {
+            currentPage++;
+            await LoadReportData(); // Load the next report
+        }
+    }
+
+    private bool HasPreviousPage => currentPage > 1;
+    private bool HasNextPage => currentPage < totalPages;
+
+    private BadgeStyle GetBadgeStyle(string consoleOutput)
+    {
+        var keyword = ExtractConsoleOutputKeyword(consoleOutput);
+
+        if (keyword.StartsWith("PERFORMANCE", StringComparison.OrdinalIgnoreCase) ||
+            keyword.StartsWith("PASSED", StringComparison.OrdinalIgnoreCase) ||
+            keyword.StartsWith("EVENT", StringComparison.OrdinalIgnoreCase) ||
+            keyword.StartsWith("URL", StringComparison.OrdinalIgnoreCase) ||
+            keyword.StartsWith("ITERATION 1", StringComparison.OrdinalIgnoreCase))
+        {
+            return BadgeStyle.Success; // Passed
+        }
+        else if (keyword.StartsWith("FAILED", StringComparison.OrdinalIgnoreCase))
+        {
+            return BadgeStyle.Secondary; // Failed
+        }
+        else if (keyword.StartsWith("WARNING", StringComparison.OrdinalIgnoreCase))
+        {
+            return BadgeStyle.Warning; // Warning
+        }
+
+        return BadgeStyle.Danger; // Default case for unknown or unhandled cases
+    }
+
+    private async Task OnDateChanged(DateTime? value)
+    {
+        if (value.HasValue)
+        {
+            try
+            {
+                isLoading = true;
+                selectedDate = value;
+                await Task.Delay(3000); // Show loading for 3 seconds
+                await LoadReportData();
+
+                NotificationService.Notify(new NotificationMessage
+                    {
+                        Severity = NotificationSeverity.Success,
+                        Summary = "Date Changed",
+                        Detail = $"Loaded reports for {value:MM/dd/yyyy}",
+                        Duration = 4000
+                    });
+            }
+            finally
+            {
+                isLoading = false;
+            }
+        }
+    }
+
+    // On refersh Data..
+    private async Task RefreshData()
+{
+    try
+    {
+        isLoading = true; // Start loading
+        filteredReports.Clear(); // Clear grid data
+        pieChartData.Clear(); // Clear pie chart data
+        await Task.Delay(3000); // Simulate loading
+        await LoadReportData();
+
+        NotificationService.Notify(new NotificationMessage
+            {
+                Severity = NotificationSeverity.Success,
+                Summary = "Data Refreshed",
+                Detail = "Reports have been refreshed successfully",
+                Duration = 4000
+            });
+    }
+    finally
+    {
+        isLoading = false; // Stop loading
+    }
+}
+
+
+
+    private string ParseConsoleOutput(string consoleOutput)
+    {
+        var keyword = ExtractConsoleOutputKeyword(consoleOutput);
+
+        if (keyword.StartsWith("PERFORMANCE", StringComparison.OrdinalIgnoreCase) ||
+            keyword.StartsWith("PASSED", StringComparison.OrdinalIgnoreCase) ||
+            keyword.StartsWith("URL", StringComparison.OrdinalIgnoreCase) ||
+            keyword.StartsWith("EVENT", StringComparison.OrdinalIgnoreCase) ||
+            keyword.StartsWith("ITERATION 1", StringComparison.OrdinalIgnoreCase))
+        {
+            return "Passed"; // Passed
+        }
+        else if (keyword.StartsWith("FAILED", StringComparison.OrdinalIgnoreCase))
+        {
+            return "Failed"; // Failed
+        }
+        else if (keyword.StartsWith("WARNING", StringComparison.OrdinalIgnoreCase))
+        {
+            return "Warning"; // Warning
+        }
+
+        return "Unknown"; // Default case
+    }
+
+    private List<string> GetXmlPaths(DateTime? date)
+    {
+        var formattedDate = date?.ToString("MM-dd-yyyy");
+        return new List<string>
+        {
+            $"X:\\AutomationScript\\ALA-EX-CRT-AMS-BILL-CLM-PAM-NOC-EPM\\Results\\{formattedDate}\\ALA-EX-CRT-AMS-BILL-CLM-PAM-NOC-EPMResults.xml",
+            $"X:\\AutomationScript\\LC360-UAT\\Results\\{formattedDate}\\LC360Result.xml"
+        };
+    }
+
+    public class PieChartData
+    {
+        public string Label { get; set; }
+        public int Value { get; set; }
+    }
+
+}
